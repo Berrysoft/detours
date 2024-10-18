@@ -2,35 +2,32 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-#[cfg(not(feature = "buildtime_bindgen"))]
 include!("bundled_bindings.rs");
-
-#[cfg(feature = "buildtime_bindgen")]
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::{ffi, ptr};
-    use winapi::{
-        shared::minwindef::LPVOID,
-        um::{processthreadsapi::GetCurrentThread, synchapi::Sleep, sysinfoapi::GetTickCount},
+    use windows_sys::Win32::System::{
+        SystemInformation::GetTickCount,
+        Threading::{GetCurrentThread, Sleep},
     };
 
-    static mut TRUE_SLEEP: unsafe extern "system" fn(DWORD) = Sleep;
-    static mut SLEPT: LONG = 0;
+    use super::*;
+    use std::{ffi, ptr};
+
+    static mut TRUE_SLEEP: unsafe extern "system" fn(u32) = Sleep;
+    static mut SLEPT: i32 = 0;
 
     // Detour function that replaces the Sleep API.
-    unsafe extern "system" fn TimedSleep(dwMilliseconds: DWORD) {
+    unsafe extern "system" fn TimedSleep(dwMilliseconds: u32) {
         // Save the before and after times around calling the Sleep API.
-        let dwBeg: DWORD = GetTickCount();
+        let dwBeg: u32 = GetTickCount();
         TRUE_SLEEP(dwMilliseconds);
-        let dwEnd: DWORD = GetTickCount();
+        let dwEnd: u32 = GetTickCount();
 
         SLEPT = (dwEnd - dwBeg) as i32;
     }
 
-    extern "system" fn DllMain(_: HINSTANCE, reason: DWORD, _: LPVOID) -> BOOL {
+    extern "system" fn DllMain(_: HINSTANCE, reason: u32, _: *mut c_void) -> BOOL {
         if unsafe { DetourIsHelperProcess() } == 1 {
             return 1;
         }
@@ -64,10 +61,9 @@ mod tests {
     fn hook_self() {
         unsafe {
             DllMain(ptr::null_mut(), 1, ptr::null_mut());
-            let slept;
 
             Sleep(500);
-            slept = SLEPT;
+            let slept = SLEPT;
             assert_ne!(SLEPT, 0);
 
             DllMain(ptr::null_mut(), 0, ptr::null_mut());

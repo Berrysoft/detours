@@ -9,13 +9,6 @@ Rust bindings to [Microsoft Detours](https://github.com/Microsoft/Detours)
 
 See the [Detours Documentation](https://github.com/Microsoft/Detours/wiki) for details.
 
-## Details
-
-Use the `buildtime_generation` feature to generate bindings at build time,
-otherwise use pregenerated bindings.
-
-Note that this will require a relatively recent version of Clang be installed.
-
 ## License
 
 Licensed under either of
